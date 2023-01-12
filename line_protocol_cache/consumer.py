@@ -61,7 +61,6 @@ class LineProtocolCacheConsumer:
       raise ValueError(_NO_CONNECTION_VALUE_ERROR_MESSAGE)
 
     rows = self._connection.execute(sql.SELECT_MAX_ROWID).fetchall()
-    print(rows)
 
     if len(rows) == 1 and isinstance(row := rows[0], tuple) and len(row) == 1:
       max_rowid = row[0]
