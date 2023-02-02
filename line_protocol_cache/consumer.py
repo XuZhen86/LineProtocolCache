@@ -23,6 +23,7 @@ class LineProtocolCacheConsumer:
   def __enter__(self) -> Self:
     self._connection = sqlite3.connect(database=self.cache_path, timeout=self.timeout)
     self._connection.execute(sql.CREATE_TABLE)
+    self._connection.execute(sql.ENABLE_WAL)
     self._connection.commit()
     return self
 
@@ -41,8 +42,8 @@ class LineProtocolCacheConsumer:
     line_protocols: dict[int, str] = {}
 
     for row in rows:
-      if (isinstance(row, tuple) and len(row) == 2 and isinstance(rowid := row[0], int)
-          and isinstance(line_protocol := row[1], str)):
+      if (isinstance(row, tuple) and len(row) == 2 and isinstance(rowid := row[0], int) and
+          isinstance(line_protocol := row[1], str)):
         line_protocols[rowid] = line_protocol
       else:
         logging.error('Invalid row: %s. Check query and cache file.', row)

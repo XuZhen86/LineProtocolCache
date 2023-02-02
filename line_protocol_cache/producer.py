@@ -21,6 +21,7 @@ class LineProtocolCacheProducer:
   def __enter__(self) -> Self:
     self._connection = sqlite3.connect(database=self.cache_path, timeout=self.timeout)
     self._connection.execute(sql.CREATE_TABLE)
+    self._connection.execute(sql.ENABLE_WAL)
     self._connection.commit()
     return self
 

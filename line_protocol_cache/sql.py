@@ -4,6 +4,9 @@ CREATE_TABLE = '''
     );
 '''
 
+# https://www.sqlite.org/wal.html
+ENABLE_WAL = 'PRAGMA journal_mode=WAL;'
+
 INSERT_ROW = '''
     INSERT INTO LineProtocolCache (line_protocol)
     VALUES (?);

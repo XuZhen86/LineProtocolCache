@@ -22,6 +22,7 @@ class AsyncLineProtocolCacheProducer:
   async def __aenter__(self) -> Self:
     self._connection = await aiosqlite.connect(database=self.cache_path, timeout=self.timeout)
     await self._connection.execute(sql.CREATE_TABLE)
+    await self._connection.execute(sql.ENABLE_WAL)
     await self._connection.commit()
     return self
 
