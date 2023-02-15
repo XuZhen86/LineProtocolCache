@@ -12,10 +12,12 @@ INSERT_ROW = '''
     VALUES (?);
 '''
 
+# The optimal batch size is 5000 lines of line protocol.
+# https://docs.influxdata.com/influxdb/v2.6/write-data/best-practices/optimize-writes/#batch-writes
 SELECT_ROWS = '''
     SELECT rowid, line_protocol
     FROM LineProtocolCache
-    LIMIT 1000;
+    LIMIT 5000;
 '''
 
 DELETE_ROW = '''

@@ -4,8 +4,8 @@ from typing import Any, NoReturn
 
 from absl import app, flags, logging
 from influxdb_client import Point
-from influxdb_client.client.influxdb_client import InfluxDBClient, WriteApi
-from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.client.write_api import WriteApi, SYNCHRONOUS
 
 from line_protocol_cache import defaults
 from line_protocol_cache.consumer import LineProtocolCacheConsumer
@@ -111,8 +111,8 @@ def _consume_and_write_line_protocols(
     derived_bucket_write_api: WriteApi | None,
 ) -> None:
   if derived_bucket_write_api is not None and (max_rowid := consumer.get_max_rowid()) is not None:
-    point = Point.measurement('line_protocol_cache').field('max_rowid',
-                                                           max_rowid).time(time.time_ns())
+    point = Point.measurement('line_protocol_cache').field('max_rowid', max_rowid).time(
+        time.time_ns())  # type: ignore
     derived_bucket_write_api.write(bucket=_DERIVED_BUCKET.value, record=point)
 
   line_protocols = consumer.get()
@@ -131,7 +131,9 @@ def run_line_protocol_cache_consumer(args: list[str]) -> NoReturn:
       derived_bucket_write_api = derived_bucket_client.write_api(write_options=SYNCHRONOUS)
 
     while True:
-      time.sleep(5)
+      is_catching_up = (max_rowid := consumer.get_max_rowid()) is not None and max_rowid >= 5000
+      time.sleep(0.5 if is_catching_up else 5)
+
       _consume_and_write_line_protocols(
           consumer=consumer,
           bucket_write_api=bucket_write_api,
