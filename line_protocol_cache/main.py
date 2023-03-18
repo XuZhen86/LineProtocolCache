@@ -72,6 +72,11 @@ _RECONNECT_INTERVAL_SECONDS = flags.DEFINE_integer(
     default=10,
     help='seconds to delay before attempting to reconnect.',
 )
+_HTTP_TIMEOUT_MILLISECONDS = flags.DEFINE_integer(
+    name='http_timeout_milliseconds',
+    default=10_000,
+    help='HTTP client timeout setting for a request specified in milliseconds.',
+)
 
 
 def _get_consumer() -> LineProtocolCacheConsumer:
@@ -86,6 +91,7 @@ def _get_bucket_client() -> InfluxDBClient:
       url=_SERVER_URL.value,
       token=_BUCKET_TOKEN.value,
       org=_BUCKET_ORG.value,
+      timeout=_HTTP_TIMEOUT_MILLISECONDS.value,
   )
 
 
@@ -108,6 +114,7 @@ def _get_derived_bucket_client() -> InfluxDBClient | Any:
              if _DERIVED_BUCKET_TOKEN.value is not None else _BUCKET_TOKEN.value),
       org=(_DERIVED_BUCKET_ORG.value
            if _DERIVED_BUCKET_ORG.value is not None else _BUCKET_ORG.value),
+      timeout=_HTTP_TIMEOUT_MILLISECONDS.value,
   )
 
 
