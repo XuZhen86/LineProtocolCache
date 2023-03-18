@@ -67,6 +67,12 @@ _DERIVED_BUCKET_ORG = flags.DEFINE_string(
     help='organization name.',
 )
 
+_RECONNECT_INTERVAL_SECONDS = flags.DEFINE_integer(
+    name='reconnect_interval_seconds',
+    default=10,
+    help='seconds to delay before attempting to reconnect.',
+)
+
 
 def _get_consumer() -> LineProtocolCacheConsumer:
   return LineProtocolCacheConsumer(
@@ -141,5 +147,13 @@ def run_line_protocol_cache_consumer(args: list[str]) -> NoReturn:
       )
 
 
+def infinite_retry_wrapper(args: list[str]) -> NoReturn:
+  while True:
+    try:
+      run_line_protocol_cache_consumer(args)
+    except:
+      time.sleep(_RECONNECT_INTERVAL_SECONDS.value)
+
+
 def main() -> None:
-  app.run(run_line_protocol_cache_consumer)
+  app.run(infinite_retry_wrapper)
