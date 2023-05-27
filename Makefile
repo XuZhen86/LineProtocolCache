@@ -11,4 +11,4 @@ clean:
 	rm -rf *.egg-info build
 
 docker-image:
-	docker build -t line-protocol-cache-consumer .
+	docker build --pull --no-cache --tag line-protocol-cache-consumer .
