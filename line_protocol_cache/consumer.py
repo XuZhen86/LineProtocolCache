@@ -1,11 +1,27 @@
 import sqlite3
 from typing import Self
 
-from absl import logging
+from absl import flags, logging
 
 from line_protocol_cache import defaults, sql
 
 _NO_CONNECTION_VALUE_ERROR_MESSAGE = 'There is no sqlite connection. Are you using "with LineProtocolCacheConsumer(...) as consumer"?'
+
+_LOG_LINE_PROTOCOLS = flags.DEFINE_bool(
+    name='log_line_protocols',
+    default=False,
+    required=False,
+    help='Log line protocol strings to INFO before sening them to InfluxDB.',
+)
+
+_LOG_LINE_PROTOCOLS_EVERY_N_SECONDS = flags.DEFINE_integer(
+    name='log_line_protocols_every_n_seconds',
+    default=0,
+    required=False,
+    help='Slow the logging down to logging every N seconds. '
+    'Directly passed into absl.logging.log_every_n_seconds(). '
+    'Use value 0 to log every string.',
+)
 
 
 class LineProtocolCacheConsumer:
@@ -45,6 +61,10 @@ class LineProtocolCacheConsumer:
       if (isinstance(row, tuple) and len(row) == 2 and isinstance(rowid := row[0], int) and
           isinstance(line_protocol := row[1], str)):
         line_protocols[rowid] = line_protocol
+
+        if _LOG_LINE_PROTOCOLS.value:
+          logging.log_every_n_seconds(logging.INFO, line_protocol,
+                                      _LOG_LINE_PROTOCOLS_EVERY_N_SECONDS.value)
       else:
         logging.error('Invalid row: %s. Check query and cache file.', row)
 
