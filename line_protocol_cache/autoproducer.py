@@ -51,7 +51,7 @@ class AutoProducer:
 
       while not self._stop_event.is_set():
         try:
-          lp = _LINE_PROTOCOL_QUEUE.get_nowait()
+          line_protocol = _LINE_PROTOCOL_QUEUE.get_nowait()
         except Empty:
           if len(line_protocols) != 0:
             with connection:
@@ -60,17 +60,17 @@ class AutoProducer:
             line_protocols.clear()
           time.sleep(1)
         else:
-          logging.debug(f'{lp=}')
-          line_protocols.append(_LINE_PROTOCOL_QUEUE.get_nowait())
+          logging.debug(f'{line_protocol=}')
+          line_protocols.append(line_protocol)
 
       while True:
         try:
-          lp = _LINE_PROTOCOL_QUEUE.get_nowait()
+          line_protocol = _LINE_PROTOCOL_QUEUE.get_nowait()
         except Empty:
           break
         else:
-          logging.debug(f'{lp=}')
-          line_protocols.append(_LINE_PROTOCOL_QUEUE.get_nowait())
+          logging.debug(f'{line_protocol=}')
+          line_protocols.append(line_protocol)
 
       with connection:
         connection.executemany(sql.INSERT_ROW, [[lp] for lp in line_protocols])
