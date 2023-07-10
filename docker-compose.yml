@@ -1,0 +1,28 @@
+version: '2.4'
+
+services:
+  prod-write-data:
+    command:
+      - line-protocol-cache-consumer
+      - --flagfile=data/flags/prod/write-data.txt
+    image: line-protocol-cache
+    init: true
+    mem_limit: 128M
+    restart: unless-stopped
+    volumes:
+      - prod-app-data:/app/data
+
+  test-write-data:
+    command:
+      - line-protocol-cache-consumer
+      - --flagfile=data/flags/test/write-data.txt
+    image: line-protocol-cache  # Replace with the project image.
+    init: true
+    mem_limit: 128M
+    restart: unless-stopped
+    volumes:
+      - test-app-data:/app/data
+
+volumes:
+  prod-app-data:
+  test-app-data:

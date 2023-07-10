@@ -1,21 +1,25 @@
 import sqlite3
-from typing import Self
 import time
-from queue import Queue, Empty
-from line_protocol_cache import defaults, sql
-from threading import Thread, Event
+from queue import Empty, Queue
+from threading import Event, Thread
+from typing import Self
+import os
 from absl import logging
+
+from line_protocol_cache.producer.flag import SQLITE_PATH, SQLITE_TIMEOUT
+from line_protocol_cache.sql import CREATE_TABLE, ENABLE_WAL, INSERT_ROW
 
 _LINE_PROTOCOL_QUEUE: Queue[str] = Queue()
 
 
 class AutoProducer:
 
-  def __init__(
-      self,
-      cache_path: str = defaults.CACHE_PATH,
-      timeout: float = defaults.TIMEOUT,
-  ) -> None:
+  def __init__(self, cache_path: str | None = None, timeout: float | None = None) -> None:
+    if cache_path is None:
+      cache_path = str(SQLITE_PATH.value)
+    if timeout is None:
+      timeout = float(SQLITE_TIMEOUT.value)
+
     self.cache_path = cache_path
     self.timeout = timeout
     self._thread = Thread(target=self._auto_put, name='AutoProducer')
@@ -39,15 +43,18 @@ class AutoProducer:
     self.__exit__(exception_type, exception_value, exception_traceback)
 
   def _auto_put(self) -> None:
-    line_protocols: list[str] = []
+    os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+
     connection = sqlite3.connect(database=self.cache_path, timeout=self.timeout)
-    logging.debug('Sqlite3 connection opened.')
+    logging.debug(f'Sqlite3 connection opened. {self.cache_path=}, {self.timeout=}')
 
     try:
       with connection:
-        connection.execute(sql.CREATE_TABLE)
-        connection.execute(sql.ENABLE_WAL)
+        connection.execute(CREATE_TABLE)
+        connection.execute(ENABLE_WAL)
       logging.debug('Sqlite3 connection init finished.')
+
+      line_protocols: list[str] = []
 
       while not self._stop_event.is_set():
         try:
@@ -55,7 +62,7 @@ class AutoProducer:
         except Empty:
           if len(line_protocols) != 0:
             with connection:
-              connection.executemany(sql.INSERT_ROW, [[lp] for lp in line_protocols])
+              connection.executemany(INSERT_ROW, [[lp] for lp in line_protocols])
             logging.debug(f'Committed {len(line_protocols)} line protocols.')
             line_protocols.clear()
           time.sleep(1)
@@ -73,7 +80,7 @@ class AutoProducer:
           line_protocols.append(line_protocol)
 
       with connection:
-        connection.executemany(sql.INSERT_ROW, [[lp] for lp in line_protocols])
+        connection.executemany(INSERT_ROW, [[lp] for lp in line_protocols])
       logging.debug(f'Committed {len(line_protocols)} line protocols. (Final)')
     finally:
       connection.close()

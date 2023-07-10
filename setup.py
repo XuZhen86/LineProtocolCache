@@ -13,6 +13,8 @@ setuptools.setup(
         'influxdb-client>=1.35.0,<2',
     ],
     entry_points={
-        'console_scripts': ['line-protocol-cache-consumer = line_protocol_cache.main:main',],
+        'console_scripts': [
+            'line-protocol-cache-consumer = line_protocol_cache.consumer.main:app_run_main',
+        ],
     },
 )
