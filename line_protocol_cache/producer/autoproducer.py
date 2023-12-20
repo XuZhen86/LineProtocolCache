@@ -25,8 +25,8 @@ class AutoProducer:
 
     self.cache_path = cache_path
     self.timeout = timeout
-    self._thread = Thread(target=self._auto_put, name='AutoProducer')
-    self._stop_event = Event()
+    self._thread = Thread(target=self._drain_queue, name='AutoProducer')
+    self._stop_thread = Event()
 
   def __enter__(self) -> Self:
     self._thread.start()
@@ -35,7 +35,7 @@ class AutoProducer:
 
   def __exit__(self, exception_type, exception_value, exception_traceback) -> None:
     logging.info(f'Stopping AutoProducer thread@{self._thread.native_id}.')
-    self._stop_event.set()
+    self._stop_thread.set()
     self._thread.join()
     logging.info(f'AutoProducer thread@{self._thread.native_id} has stopped.')
 
@@ -45,7 +45,7 @@ class AutoProducer:
   async def __aexit__(self, exception_type, exception_value, exception_traceback) -> None:
     self.__exit__(exception_type, exception_value, exception_traceback)
 
-  def _auto_put(self) -> None:
+  def _drain_queue(self) -> None:
     os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
 
     connection = sqlite3.connect(database=self.cache_path, timeout=self.timeout)
@@ -58,16 +58,17 @@ class AutoProducer:
       _IS_QUEUE_OPEN.set()
       logging.debug('Sqlite3 connection init finished.')
 
-      while not self._stop_event.is_set():
+      while not self._stop_thread.is_set():
+        # Sleep for 1 second, but wake up earlier if the thread needs to be stopped.
+        self._stop_thread.wait(1)
         # Intentionally draining the queue after sleeping, so that all rows up until the event are committed.
-        time.sleep(1)
-        self._insert_rows(connection, self._drain_queue())
+        self._insert_rows(connection, self._get_rows())
     finally:
       _IS_QUEUE_OPEN.clear()
       connection.close()
       logging.debug('Sqlite3 connection closed.')
 
-  def _drain_queue(self) -> list[str]:
+  def _get_rows(self) -> list[str]:
     line_protocols: list[str] = []
     while _LINE_PROTOCOL_QUEUE.qsize() != 0:
       line_protocol = _LINE_PROTOCOL_QUEUE.get()
