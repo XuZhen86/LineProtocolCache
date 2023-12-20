@@ -8,16 +8,13 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-python.isort"
+        "ms-python.isort",
+        "eeyore.yapf"
       ]
     }
   },
-  "features": {
-    "ghcr.io/devcontainers-contrib/features/isort:1": {},
-    "ghcr.io/devcontainers-contrib/features/yapf:1": {}
-  },
   // https://containers.dev/implementors/json_reference/#image-specific
-  "image": "python:3.11.3",
+  "image": "python:3.11.7",
   // https://containers.dev/implementors/json_reference/#lifecycle-scripts
   "postCreateCommand": [
     "pip3",

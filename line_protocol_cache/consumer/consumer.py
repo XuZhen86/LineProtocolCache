@@ -1,8 +1,8 @@
+import os
 import sqlite3
 from typing import Self
 
 from absl import logging
-import os
 
 from line_protocol_cache.consumer.flag import LOG_EVERY_N_SECONDS, SQLITE_PATH, SQLITE_TIMEOUT
 from line_protocol_cache.sql import (CREATE_TABLE, DELETE_ROW, ENABLE_WAL, SELECT_MAX_ROWID,
@@ -54,8 +54,8 @@ class Consumer:
     line_protocols: dict[int, str] = {}
 
     for row in rows:
-      if (not isinstance(row, tuple) or len(row) != 2 or not isinstance(rowid := row[0], int)
-          or not isinstance(line_protocol := row[1], str)):
+      if (not isinstance(row, tuple) or len(row) != 2 or not isinstance(rowid := row[0], int) or
+          not isinstance(line_protocol := row[1], str)):
         e = ValueError('Invalid row. Check query and cache file.')
         e.add_note(f'{row=}')
         raise e

@@ -1,8 +1,9 @@
+import os
 from typing import Self
 
 import aiosqlite
 from absl import logging
-import os
+
 from line_protocol_cache.producer.flag import SQLITE_PATH, SQLITE_TIMEOUT
 from line_protocol_cache.sql import CREATE_TABLE, ENABLE_WAL, INSERT_ROW
 

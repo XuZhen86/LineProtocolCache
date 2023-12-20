@@ -1,14 +1,18 @@
 {
-  "isort.check": true,
-  "isort.args": [
-    "--line-length=100"
-  ],
-  "python.formatting.provider": "yapf",
-  "python.formatting.yapfPath": "/usr/local/bin/yapf",
-  "python.formatting.yapfArgs": [
+  "[python]": {
+    "editor.defaultFormatter": "eeyore.yapf",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+  },
+  "yapf.args": [
     "--style",
-    "{based_on_style: pep8, COLUMN_LIMIT: 100, INDENT_WIDTH: 2}"
+    "{based_on_style: google, COLUMN_LIMIT: 100, INDENT_WIDTH: 2}"
+  ],
+  "isort.args": [
+    "--line-length",
+    "100"
   ],
   "python.analysis.typeCheckingMode": "basic",
-  "editor.formatOnSave": true
 }

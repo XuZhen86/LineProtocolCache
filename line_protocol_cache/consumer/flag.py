@@ -1,6 +1,7 @@
 from typing import Any
 
 from absl import flags
+
 import line_protocol_cache.producer.flag as producer_flag
 
 SQLITE_PATH = producer_flag.SQLITE_PATH
