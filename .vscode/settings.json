@@ -8,11 +8,11 @@
   },
   "yapf.args": [
     "--style",
-    "{based_on_style: google, COLUMN_LIMIT: 100, INDENT_WIDTH: 2}"
+    "{based_on_style: google, COLUMN_LIMIT: 120, INDENT_WIDTH: 2}"
   ],
   "isort.args": [
     "--line-length",
-    "100"
+    "120"
   ],
   "python.analysis.typeCheckingMode": "basic",
 }

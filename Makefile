@@ -7,6 +7,9 @@ install-dev:
 uninstall:
 	pip3 uninstall --yes line-protocol-cache
 
+unit-test:
+	python3 -X dev -X tracemalloc -m unittest discover
+
 clean:
 	rm -rf *.egg-info build
 
