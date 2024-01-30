@@ -5,6 +5,7 @@ from threading import Event
 from unittest.mock import Mock, call, patch
 
 from absl import logging
+from absl.logging.converter import absl_to_standard
 from absl.testing import absltest, flagsaver
 from influxdb_client.client.write_api import WriteApi
 
@@ -83,7 +84,7 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
   @patch.object(Event, 'wait', Mock())
   @patch.object(Event, 'is_set', Mock(side_effect=[False] * 3 + [True]))
   def test_backlogged_catchesUpAndLogs(self):
-    with self.assertLogs(logger='absl', level=logging.INFO) as logs:
+    with self.assertLogs(logger='absl', level=absl_to_standard(logging.INFO)) as logs:
       with LineProtocolCacheUploader() as uploader:
         uploader.run()
 
@@ -105,7 +106,7 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
   @patch.object(Event, 'is_set', Mock(side_effect=[False] * 3 + [True]))
   @flagsaver.as_parsed((_SAMPLE_INTERVAL, str(0.0)))
   def test_sampleInterval0_logsAllPoints(self):
-    with self.assertLogs(logger='absl', level=logging.INFO) as logs:
+    with self.assertLogs(logger='absl', level=absl_to_standard(logging.INFO)) as logs:
       with LineProtocolCacheUploader() as uploader:
         uploader.run()
 

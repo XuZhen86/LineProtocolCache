@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 
 from absl import logging
+from absl.logging.converter import absl_to_standard
 from absl.testing import absltest
 from influxdb_client import Point
 
@@ -52,7 +53,7 @@ class TestLineProtocolCache(absltest.TestCase):
       LineProtocolCache.put(self.POINT_1)
 
   def test_sampleInterval0_logsAllPoints(self):
-    with self.assertLogs(logger='absl', level=logging.INFO) as logs:
+    with self.assertLogs(logger='absl', level=absl_to_standard(logging.INFO)) as logs:
       with LineProtocolCache(self.config):
         LineProtocolCache.put(self.POINT_1, self.POINT_2, self.POINTS_1, self.POINTS_2)
 
