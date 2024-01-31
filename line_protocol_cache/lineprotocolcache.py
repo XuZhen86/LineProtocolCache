@@ -85,6 +85,7 @@ class LineProtocolCache:
         self._insert_rows(connection, self._get_rows())
     finally:
       # Keep the queue open until the final moment to collect any last bit of strings.
+      # It also raises an exception in put() in case the thread is dead.
       self._IS_QUEUE_OPEN.clear()
       connection.close()
 
@@ -111,7 +112,7 @@ class LineProtocolCache:
   def put(cls, *items: Point | Iterable[Point]) -> None:
     if not cls._IS_QUEUE_OPEN.is_set():
       raise ValueError('Line protocol queue is not open. '
-                       'Check if LineProtocolCache is running healthy.')
+                       'Check if there was an Exception in the LineProtocolCache thread.')
 
     for item in items:
       if isinstance(item, Point):
