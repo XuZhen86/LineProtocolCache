@@ -1,5 +1,6 @@
 import math
 import os
+import signal
 import sqlite3
 from sys import float_info
 from threading import Event
@@ -165,7 +166,10 @@ class LineProtocolCacheUploader:
 
 def main(args: list[str]) -> None:
   with LineProtocolCacheUploader() as uploader:
-    uploader.run()
+    stop_running = Event()
+    signal.signal(signal.SIGTERM, lambda signal_number, stack_frame: stop_running.set())
+
+    uploader.run(stop_running)
 
 
 def app_run_main() -> None:
