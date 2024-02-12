@@ -11,10 +11,12 @@ setuptools.setup(
         'absl-py>=2.1.0,<3',
         'aiosqlite>=0.19.0,<1',
         'influxdb-client>=1.39.0,<2',
+        'tenacity>=8.2.3,<9',
     ],
     entry_points={
         'console_scripts': [
             'line-protocol-cache-uploader = line_protocol_cache.lineprotocolcacheuploader:app_run_main',
+            'bucket-migration-helper = line_protocol_cache.bucketmigrationhelper.bucketmigrationhelper:app_run_main',
         ],
     },
 )
