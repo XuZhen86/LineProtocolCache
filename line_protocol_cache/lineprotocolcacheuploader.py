@@ -10,6 +10,8 @@ from absl import app, flags, logging
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from line_protocol_cache.flagutil import value_or_default
+
 _URLS = flags.DEFINE_multi_string(
     name='urls',
     default=None,
@@ -102,15 +104,16 @@ class LineProtocolCacheUploader:
   _COUNT = 'SELECT COUNT(line_protocol) FROM LineProtocolCache;'
 
   def __enter__(self) -> Self:
-    os.makedirs(os.path.dirname(_CACHE_PATH.value), exist_ok=True)
+    os.makedirs(os.path.dirname(value_or_default(_CACHE_PATH)), exist_ok=True)
 
-    self._connection = sqlite3.connect(database=_CACHE_PATH.value, timeout=_SQLITE_TIMEOUT.value)
+    self._connection = sqlite3.connect(database=value_or_default(_CACHE_PATH),
+                                       timeout=value_or_default(_SQLITE_TIMEOUT))
     with self._connection:
       self._connection.execute(self._ENABLE_WAL)
       self._connection.execute(self._CREATE_TABLE)
 
     self._clients: list[InfluxDBClient] = [
-        InfluxDBClient(url=url, token=token, org=org, timeout=_HTTP_TIMEOUT.value)
+        InfluxDBClient(url=url, token=token, org=org, timeout=value_or_default(_HTTP_TIMEOUT))
         for url, token, org in zip(_URLS.value, _TOKENS.value, _ORGS.value, strict=True)
     ]
     self._write_apis = [client.write_api(write_options=SYNCHRONOUS) for client in self._clients]
@@ -124,7 +127,7 @@ class LineProtocolCacheUploader:
 
   def _get_rows(self) -> dict[int, str]:
     with self._connection:
-      raw_rows = self._connection.execute(self._SELECT_ROWS).fetchmany(_BATCH_SIZE.value)
+      raw_rows = self._connection.execute(self._SELECT_ROWS).fetchmany(value_or_default(_BATCH_SIZE))
 
     rows: dict[int, str] = dict()
 
@@ -132,7 +135,7 @@ class LineProtocolCacheUploader:
       if (isinstance(raw_row, tuple) and len(raw_row) == 2 and isinstance(rowid := raw_row[0], int) and
           isinstance(row := raw_row[1], str)):
         rows[rowid] = row
-        logging.log_every_n_seconds(logging.INFO, row, _SAMPLE_INTERVAL.value)
+        logging.log_every_n_seconds(logging.INFO, row, value_or_default(_SAMPLE_INTERVAL))
         continue
 
       e = ValueError('Invalid row. Check query and cache file.')
@@ -168,11 +171,11 @@ class LineProtocolCacheUploader:
   def run(self, stop_running: Event = Event()) -> None:
     while not stop_running.is_set():
       count = self._get_count()
-      if count > _BATCH_SIZE.value:
+      if count > value_or_default(_BATCH_SIZE):
         logging.info(f'Catching up, {count=}.')
-        stop_running.wait(_CATCHING_UP_INTERVAL.value)
+        stop_running.wait(value_or_default(_CATCHING_UP_INTERVAL))
       else:
-        stop_running.wait(_UPLOAD_INTERVAL.value)
+        stop_running.wait(value_or_default(_UPLOAD_INTERVAL))
 
       rows = self._get_rows()
       self._upload_rows(list(rows.values()))

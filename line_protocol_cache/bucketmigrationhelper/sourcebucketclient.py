@@ -6,6 +6,7 @@ from influxdb_client.client.flux_table import FluxRecord, TableList
 from tenacity import Retrying, after_log, stop_after_attempt, wait_fixed
 
 from line_protocol_cache.bucketmigrationhelper.timestamp import Timestamp
+from line_protocol_cache.flagutil import value_or_default
 
 _SRC_SERVER_URL = flags.DEFINE_string(
     name='src_server_url',
@@ -56,12 +57,12 @@ class SourceBucketClient:
         _SRC_SERVER_URL.value,
         _SRC_TOKEN.value,
         org=_SRC_ORG.value,
-        timeout=(_TIMEOUT_MS.value if _TIMEOUT_MS.present else _TIMEOUT_MS.default),
+        timeout=value_or_default(_TIMEOUT_MS),
     )
     self._query_api = self._client.query_api()
     self._retrying = Retrying(
-        stop=stop_after_attempt(_MAX_ATTEMPTS.value if _MAX_ATTEMPTS.present else _MAX_ATTEMPTS.default),
-        wait=wait_fixed(_RETRY_INTERVAL_S.value if _RETRY_INTERVAL_S.present else _RETRY_INTERVAL_S.default),
+        stop=stop_after_attempt(value_or_default(_MAX_ATTEMPTS)),
+        wait=wait_fixed(value_or_default(_RETRY_INTERVAL_S)),
         after=after_log(logger=logging, log_level=logging.WARNING),  # type: ignore
         reraise=True,
     )

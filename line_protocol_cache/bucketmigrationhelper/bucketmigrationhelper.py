@@ -6,6 +6,7 @@ from absl import app, flags, logging
 
 from line_protocol_cache.bucketmigrationhelper.sourcebucketclient import SourceBucketClient
 from line_protocol_cache.bucketmigrationhelper.timestamp import Timestamp
+from line_protocol_cache.flagutil import value_or_default
 
 _WRITE_TO_DST_BUCKET = flags.DEFINE_bool(
     name='write_to_dst_bucket',
@@ -79,7 +80,7 @@ _TIME_RANGE_INCREMENTS_NS = flags.DEFINE_integer(
 class BucketMigrationHelper:
 
   def _copy_points(self, client: SourceBucketClient, range_start: Timestamp, range_stop: Timestamp) -> int:
-    if (_WRITE_TO_DST_BUCKET.value if _WRITE_TO_DST_BUCKET.present else _WRITE_TO_DST_BUCKET.default):
+    if value_or_default(_WRITE_TO_DST_BUCKET):
       assert _DST_SERVER_URL.value is not None
       assert _DST_BUCKET.value is not None
       assert _DST_ORG.value is not None
@@ -90,7 +91,7 @@ class BucketMigrationHelper:
 
     query_lines: list[str | None] = [
         'drop(columns: ["_start", "_stop"])',
-        *(_FLUX_QUERY.value if _FLUX_QUERY.present else _FLUX_QUERY.default),
+        *value_or_default(_FLUX_QUERY),
         to_bucket,
         'count()',
         'group()',
@@ -109,7 +110,7 @@ class BucketMigrationHelper:
       logging.info(f'Iterating from {min_timestamp}, {min_timestamp.nanoseconds} '
                    f'to {max_timestamp}, {max_timestamp.nanoseconds}')
 
-      increment_ns = _TIME_RANGE_INCREMENTS_NS.value if _TIME_RANGE_INCREMENTS_NS.present else _TIME_RANGE_INCREMENTS_NS.default
+      increment_ns = value_or_default(_TIME_RANGE_INCREMENTS_NS)
       iterations = math.ceil((max_timestamp.nanoseconds - min_timestamp.nanoseconds) / increment_ns)
 
       for i in range(iterations):

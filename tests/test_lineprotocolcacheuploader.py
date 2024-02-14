@@ -12,8 +12,8 @@ from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import WriteApi
 
 from line_protocol_cache.lineprotocolcacheuploader import (_BATCH_SIZE, _BUCKETS, _CACHE_PATH, _CATCHING_UP_INTERVAL,
-                                                           _HTTP_TIMEOUT, _ORGS, _SAMPLE_INTERVAL, _SQLITE_TIMEOUT,
-                                                           _TOKENS, _UPLOAD_INTERVAL, _URLS, LineProtocolCacheUploader)
+                                                           _ORGS, _SAMPLE_INTERVAL, _TOKENS, _UPLOAD_INTERVAL, _URLS,
+                                                           LineProtocolCacheUploader)
 
 MOCK_EVENT = Mock(spec=Event)
 MOCK_WRITE_API = Mock(spec=WriteApi)
@@ -40,12 +40,7 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
         (_BUCKETS, ['bucket1', 'bucket2']),
         (_TOKENS, ['token1', 'token2']),
         (_ORGS, ['org1', 'org2']),
-        (_HTTP_TIMEOUT, str(_HTTP_TIMEOUT.default)),
         (_CACHE_PATH, self.cache_path),
-        (_SQLITE_TIMEOUT, str(_SQLITE_TIMEOUT.default)),
-        (_UPLOAD_INTERVAL, str(_UPLOAD_INTERVAL.default)),
-        (_CATCHING_UP_INTERVAL, str(_CATCHING_UP_INTERVAL.default)),
-        (_SAMPLE_INTERVAL, str(_SAMPLE_INTERVAL.default)),
         (_BATCH_SIZE, str(4)),
     )
     self.saved_flags.__enter__()
@@ -112,9 +107,9 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
     self.assertContainsExactSubsequence(
         MOCK_EVENT.wait.call_args_list,
         [
-            call(_CATCHING_UP_INTERVAL.value),
-            call(_CATCHING_UP_INTERVAL.value),
-            call(_UPLOAD_INTERVAL.value),
+            call(_CATCHING_UP_INTERVAL.default),
+            call(_CATCHING_UP_INTERVAL.default),
+            call(_UPLOAD_INTERVAL.default),
         ],
     )
     self.assertContainsSubsequence(
