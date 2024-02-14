@@ -4,36 +4,37 @@ import signal
 import sqlite3
 from sys import float_info
 from threading import Event
-from typing import Self
+from typing import Any, Self
 
 from absl import app, flags, logging
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-_SERVER_URL = flags.DEFINE_string(
-    name='server_url',
+_URLS = flags.DEFINE_multi_string(
+    name='urls',
     default=None,
     required=True,
     help='InfluxDB server API URL (ex. http://localhost:8086).',
 )
-_BUCKET = flags.DEFINE_string(
-    name='bucket',
+_BUCKETS = flags.DEFINE_multi_string(
+    name='buckets',
     default=None,
     required=True,
     help='Specifies the destination bucket for collected metrics.',
 )
-_BUCKET_TOKEN = flags.DEFINE_string(
-    name='bucket_token',
+_TOKENS = flags.DEFINE_multi_string(
+    name='tokens',
     default=None,
     required=True,
     help='Token to authenticate to the InfluxDB 2.x.',
 )
-_BUCKET_ORG = flags.DEFINE_string(
-    name='bucket_org',
+_ORGS = flags.DEFINE_multi_string(
+    name='orgs',
     default=None,
     required=True,
     help='Organization name.',
 )
+
 _HTTP_TIMEOUT = flags.DEFINE_integer(
     name='http_timeout_ms',
     default=10_000,
@@ -81,6 +82,18 @@ _BATCH_SIZE = flags.DEFINE_integer(
 )
 
 
+def _validate_server_flags(flag: dict[str, Any]) -> bool:
+  try:
+    list(zip(_URLS.value, _BUCKETS.value, _TOKENS.value, _ORGS.value, strict=True))
+    return True
+  except ValueError as e:
+    raise flags.ValidationError(f'Flags {_URLS.name}, {_BUCKETS.name}, {_TOKENS.name}, and {_ORGS.name} '
+                                'should have the same length.') from e
+
+
+flags.register_multi_flags_validator((_URLS, _BUCKETS, _TOKENS, _ORGS), _validate_server_flags)
+
+
 class LineProtocolCacheUploader:
   _ENABLE_WAL = 'PRAGMA journal_mode=WAL;'  # https://www.sqlite.org/wal.html
   _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS LineProtocolCache (line_protocol TEXT NOT NULL);'
@@ -96,18 +109,17 @@ class LineProtocolCacheUploader:
       self._connection.execute(self._ENABLE_WAL)
       self._connection.execute(self._CREATE_TABLE)
 
-    self._client = InfluxDBClient(
-        url=_SERVER_URL.value,
-        token=_BUCKET_TOKEN.value,
-        org=_BUCKET_ORG.value,
-        timeout=_HTTP_TIMEOUT.value,
-    )
-    self._write_api = self._client.write_api(write_options=SYNCHRONOUS)
+    self._clients: list[InfluxDBClient] = [
+        InfluxDBClient(url=url, token=token, org=org, timeout=_HTTP_TIMEOUT.value)
+        for url, token, org in zip(_URLS.value, _TOKENS.value, _ORGS.value, strict=True)
+    ]
+    self._write_apis = [client.write_api(write_options=SYNCHRONOUS) for client in self._clients]
 
     return self
 
   def __exit__(self, exception_type, exception_value, exception_traceback) -> None:
-    self._client.close()
+    for client in self._clients:
+      client.close()
     self._connection.close()
 
   def _get_rows(self) -> dict[int, str]:
@@ -135,8 +147,11 @@ class LineProtocolCacheUploader:
       self._connection.executemany(self._DELETE_ROW, [(rowid,) for rowid in rowids])
 
   def _upload_rows(self, rows: list[str]) -> None:
-    if len(rows) != 0:
-      self._write_api.write(bucket=_BUCKET.value, record=rows)
+    if len(rows) == 0:
+      return
+
+    for write_api, bucket in zip(self._write_apis, _BUCKETS.value, strict=True):
+      write_api.write(bucket=bucket, record=rows)
 
   def _get_count(self) -> int:
     with self._connection:
@@ -174,7 +189,3 @@ def main(args: list[str]) -> None:
 
 def app_run_main() -> None:
   app.run(main)
-
-
-if __name__ == '__main__':
-  app_run_main()
