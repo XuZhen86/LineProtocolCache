@@ -15,15 +15,17 @@ from line_protocol_cache.lineprotocolcacheuploader import (_BATCH_SIZE, _BUCKETS
                                                            _HTTP_TIMEOUT, _ORGS, _SAMPLE_INTERVAL, _SQLITE_TIMEOUT,
                                                            _TOKENS, _UPLOAD_INTERVAL, _URLS, LineProtocolCacheUploader)
 
+MOCK_EVENT = Mock(spec=Event)
+MOCK_WRITE_API = Mock(spec=WriteApi)
 
+
+@patch.object(InfluxDBClient, InfluxDBClient.write_api.__name__, Mock(return_value=MOCK_WRITE_API))
 class TestLineProtocolCacheUploader(absltest.TestCase):
   CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS LineProtocolCache (line_protocol TEXT NOT NULL);'
   INSERT_ROW = 'INSERT INTO LineProtocolCache (line_protocol) VALUES (?);'
   SELECT_ROWS = 'SELECT line_protocol FROM LineProtocolCache;'
 
   ROWS = [f'row #{i}' for i in range(10)]
-
-  MOCK_EVENT = Mock(spec=Event)
 
   def setUp(self):
     self.temp_dir = tempfile.TemporaryDirectory()
@@ -48,26 +50,32 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
     )
     self.saved_flags.__enter__()
 
+    return super().setUp()
+
   def tearDown(self):
     self.saved_flags.__exit__(None, None, None)
     self.connection.close()
     self.temp_dir.cleanup()
+    MOCK_EVENT.reset_mock()
+    MOCK_WRITE_API.reset_mock()
     return super().tearDown()
 
   def test_serverFlagsDifferentLength_raises(self):
     with self.assertRaises(IllegalFlagValueError):
-      with flagsaver.as_parsed((_URLS, ['url1']), (_BUCKETS, ['bucket1', 'bucket2']), (_TOKENS, ['token1', 'token2']),
-                               (_ORGS, ['org1', 'org2'])):
+      with flagsaver.as_parsed(
+          (_URLS, ['url1']),
+          (_BUCKETS, ['bucket1', 'bucket2']),
+          (_TOKENS, ['token1', 'token2']),
+          (_ORGS, ['org1', 'org2']),
+      ):
         pass
 
-  @patch.object(InfluxDBClient, InfluxDBClient.write_api.__name__, Mock(return_value=Mock(spec=WriteApi)))
-  @patch.object(MOCK_EVENT, Event.wait.__name__, Mock())
   @patch.object(MOCK_EVENT, Event.is_set.__name__, Mock(side_effect=[False, False, False, True]))
   def test_uploadsInOrderAndDeletes(self):
     with LineProtocolCacheUploader() as uploader:
-      uploader.run(self.MOCK_EVENT)
+      uploader.run(MOCK_EVENT)
 
-    self.assertListEqual(InfluxDBClient.write_api.return_value.write.call_args_list, [
+    self.assertListEqual(MOCK_WRITE_API.write.call_args_list, [
         call(bucket='bucket1', record=self.ROWS[:4]),
         call(bucket='bucket2', record=self.ROWS[:4]),
         call(bucket='bucket1', record=self.ROWS[4:8]),
@@ -78,16 +86,14 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
     with self.connection:
       self.assertEmpty(self.connection.execute(self.SELECT_ROWS).fetchall())
 
-  @patch.object(InfluxDBClient, InfluxDBClient.write_api.__name__,
-                Mock(return_value=Mock(spec=WriteApi, write=Mock(side_effect=[None, Exception()]))))
-  @patch.object(MOCK_EVENT, Event.wait.__name__, Mock())
   @patch.object(MOCK_EVENT, Event.is_set.__name__, Mock(return_value=False))
+  @patch.object(MOCK_WRITE_API, WriteApi.write.__name__, Mock(side_effect=[None, Exception()]))
   def test_uploadFails_doesNotDelete(self):
 
     with self.assertRaises(Exception), LineProtocolCacheUploader() as uploader:
-      uploader.run(self.MOCK_EVENT)
+      uploader.run(MOCK_EVENT)
 
-    self.assertListEqual(InfluxDBClient.write_api.return_value.write.call_args_list, [
+    self.assertListEqual(MOCK_WRITE_API.write.call_args_list, [
         call(bucket='bucket1', record=self.ROWS[:4]),
         call(bucket='bucket2', record=self.ROWS[:4]),
     ])
@@ -97,16 +103,14 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
           [(row,) for row in self.ROWS],
       )
 
-  @patch.object(InfluxDBClient, InfluxDBClient.write_api.__name__, Mock(return_value=Mock(spec=WriteApi)))
-  @patch.object(MOCK_EVENT, Event.wait.__name__, Mock())
   @patch.object(MOCK_EVENT, Event.is_set.__name__, Mock(side_effect=[False, False, False, True]))
   def test_backlogged_catchesUpAndLogs(self):
     with self.assertLogs(logger='absl', level=absl_to_standard(logging.INFO)) as logs:
       with LineProtocolCacheUploader() as uploader:
-        uploader.run(self.MOCK_EVENT)
+        uploader.run(MOCK_EVENT)
 
     self.assertContainsExactSubsequence(
-        self.MOCK_EVENT.wait.call_args_list,
+        MOCK_EVENT.wait.call_args_list,
         [
             call(_CATCHING_UP_INTERVAL.value),
             call(_CATCHING_UP_INTERVAL.value),
@@ -118,13 +122,11 @@ class TestLineProtocolCacheUploader(absltest.TestCase):
         ['Catching up, count=10.', 'Catching up, count=6.'],
     )
 
-  @patch.object(InfluxDBClient, InfluxDBClient.write_api.__name__, Mock(return_value=Mock(spec=WriteApi)))
-  @patch.object(MOCK_EVENT, Event.wait.__name__, Mock())
   @patch.object(MOCK_EVENT, Event.is_set.__name__, Mock(side_effect=[False, False, False, True]))
   @flagsaver.as_parsed((_SAMPLE_INTERVAL, str(0.0)))
   def test_sampleInterval0_logsAllPoints(self):
     with self.assertLogs(logger='absl', level=absl_to_standard(logging.INFO)) as logs:
       with LineProtocolCacheUploader() as uploader:
-        uploader.run(self.MOCK_EVENT)
+        uploader.run(MOCK_EVENT)
 
     self.assertContainsSubsequence([record.message for record in logs.records], self.ROWS)
