@@ -113,7 +113,7 @@ class LineProtocolCacheUploader:
       self._connection.execute(self._CREATE_TABLE)
 
     self._clients: list[InfluxDBClient] = [
-        InfluxDBClient(url=url, token=token, org=org, timeout=value_or_default(_HTTP_TIMEOUT))
+        InfluxDBClient(url=url, token=token, org=org, timeout=value_or_default(_HTTP_TIMEOUT), enable_gzip=True)
         for url, token, org in zip(_URLS.value, _TOKENS.value, _ORGS.value, strict=True)
     ]
     self._write_apis = [client.write_api(write_options=SYNCHRONOUS) for client in self._clients]
