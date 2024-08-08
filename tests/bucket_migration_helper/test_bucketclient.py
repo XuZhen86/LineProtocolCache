@@ -9,9 +9,9 @@ from jsonschema import ValidationError
 from tenacity import stop_after_attempt, wait_none
 
 from bucket_migration_helper.bucketclient import _DRY_RUN, _FLUX_QUERY, BucketClient
-from bucket_migration_helper.bucketinfo import BucketInfo
 from bucket_migration_helper.timestamp import Timestamp
 from bucket_migration_helper.timestamprange import TimestampRange
+from common.bucketinfo import BucketInfo
 
 MOCK_QUERY = Mock()
 

@@ -1,6 +1,6 @@
 from absl.testing import parameterized
 
-from bucket_migration_helper.bucketinfo import BucketInfo
+from common.bucketinfo import BucketInfo
 
 
 class TestBucketInfo(parameterized.TestCase):

@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import ClassVar, Final, Self
+from typing import ClassVar, Self
 
 
 @dataclass(frozen=True, order=True)

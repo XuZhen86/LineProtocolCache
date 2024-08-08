@@ -2,8 +2,9 @@ from threading import Event
 
 from absl import flags, logging
 
+from common.bucketinfo import BucketInfo
+
 from .bucketclient import BucketClient
-from .bucketinfo import BucketInfo
 from .duration import Duration
 from .timestamp import Timestamp
 from .timestamprange import TimestampRange

@@ -6,7 +6,8 @@ from influxdb_client import InfluxDBClient
 from jsonschema import Draft202012Validator
 from tenacity import before_sleep_log, retry, stop_after_attempt, wait_fixed
 
-from .bucketinfo import BucketInfo
+from common.bucketinfo import BucketInfo
+
 from .timestamp import Timestamp
 from .timestamprange import TimestampRange
 

@@ -6,7 +6,6 @@ from absl.logging.converter import absl_to_standard
 from absl.testing import flagsaver, parameterized
 
 from bucket_migration_helper.bucketclient import BucketClient
-from bucket_migration_helper.bucketinfo import BucketInfo
 from bucket_migration_helper.duration import Duration
 from bucket_migration_helper.migrationactuator import (_SOURCE_BUCKET, _SOURCE_ORG, _SOURCE_SERVER_URL, _SOURCE_TOKEN,
                                                        _TARGET_BUCKET, _TARGET_ORG, _TARGET_SERVER_URL, _TARGET_TOKEN,
@@ -14,6 +13,7 @@ from bucket_migration_helper.migrationactuator import (_SOURCE_BUCKET, _SOURCE_O
                                                        MigrationActuator)
 from bucket_migration_helper.timestamp import Timestamp
 from bucket_migration_helper.timestamprange import TimestampRange
+from common.bucketinfo import BucketInfo
 
 MOCK_GET_MIN_TIMESTAMP = Mock()
 MOCK_GET_MAX_TIMESTAMP = Mock()
