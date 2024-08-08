@@ -16,7 +16,7 @@ setuptools.setup(
     entry_points={
         'console_scripts': [
             'line-protocol-cache-uploader = line_protocol_cache.lineprotocolcacheuploader:app_run_main',
-            'bucket-migration-helper = line_protocol_cache.bucketmigrationhelper.bucketmigrationhelper:app_run_main',
+            'bucket-migration-helper = bucket_migration_helper.main:app_run_main',
         ],
     },
 )
