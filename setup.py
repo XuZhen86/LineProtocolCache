@@ -11,6 +11,7 @@ setuptools.setup(
         'absl-py>=2.1.0,<3',
         'aiosqlite>=0.19.0,<1',
         'influxdb-client>=1.39.0,<2',
+        'jsonschema>=4.23.0,<5',
         'tenacity>=8.2.3,<9',
     ],
     entry_points={
