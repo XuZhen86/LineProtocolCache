@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar, Self
+from typing import ClassVar
 
 from .duration import Duration
 from .timestamp import Timestamp
@@ -7,7 +7,7 @@ from .timestamp import Timestamp
 
 @dataclass(frozen=True)
 class TimestampRange:
-  ETERNITY: ClassVar[Self]
+  ETERNITY: ClassVar
 
   start: Timestamp
   stop: Timestamp

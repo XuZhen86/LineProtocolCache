@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass
-from typing import ClassVar, Self
+from typing import ClassVar, Type, TypeVar
+
+DurationType = TypeVar(name='DurationType', bound='Duration')
 
 
 @dataclass(frozen=True, order=True)
@@ -38,7 +40,7 @@ class Duration:
       return self.duration_ns / other.duration_ns
     return NotImplemented
 
-  def __mul__(self, other: object) -> Self:
+  def __mul__(self: DurationType, other: object) -> DurationType:
     if isinstance(other, int):
       return self.__class__(self.duration_ns * other)
     return NotImplemented
@@ -50,10 +52,10 @@ class Duration:
                            r':(?P<seconds>\d{2,})'
                            r'\.(?P<nanoseconds>\d{9,})'
                            r'$')
-  _PATTERN: ClassVar[re.Pattern[str]] = re.compile(_REGEX)
+  _PATTERN: ClassVar['re.Pattern[str]'] = re.compile(_REGEX)
 
   @classmethod
-  def build(cls, s: str) -> Self:
+  def build(cls: Type[DurationType], s: str) -> DurationType:
     try:
       return cls(int(s))
     except ValueError:
@@ -73,10 +75,10 @@ class Duration:
 
     return cls(duration_ns)
 
-  MAX: ClassVar[Self]
-  MIN: ClassVar[Self]
-  ZERO: ClassVar[Self]
-  HOUR: ClassVar[Self]
+  MAX: ClassVar
+  MIN: ClassVar
+  ZERO: ClassVar
+  HOUR: ClassVar
 
 
 Duration.MAX = Duration(Duration._DURATION_NS_MAX)

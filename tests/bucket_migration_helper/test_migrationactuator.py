@@ -57,6 +57,7 @@ class TestMirgationActuator(parameterized.TestCase):
 
     MOCK_GET_MIN_TIMESTAMP.return_value = Timestamp(-10)
     MOCK_GET_MAX_TIMESTAMP.return_value = Timestamp(10)
+    MOCK_COPY_TO_BUCKET.reset_mock(return_value=True, side_effect=True)
     MOCK_COPY_TO_BUCKET.return_value = 0
 
     MOCK_IS_SET.side_effect = [False, True]

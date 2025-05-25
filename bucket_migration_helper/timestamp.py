@@ -1,9 +1,11 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import ClassVar, Self, overload
+from typing import ClassVar, Type, TypeVar, Union, overload
 
 from .duration import Duration
+
+TimestampType = TypeVar(name='TimestampType', bound='Timestamp')
 
 
 @dataclass(frozen=True, order=True)
@@ -29,21 +31,21 @@ class Timestamp:
     return iso_format + '.' + nanoseconds + 'Z'
 
   @overload
-  def __sub__(self, other: Duration) -> Self:
+  def __sub__(self: TimestampType, other: Duration) -> TimestampType:
     ...
 
   @overload
-  def __sub__(self, other: Self) -> Duration:
+  def __sub__(self: TimestampType, other: TimestampType) -> Duration:
     ...
 
-  def __sub__(self, other: object) -> Self | Duration:
+  def __sub__(self: TimestampType, other: object) -> Union[TimestampType, Duration]:
     if isinstance(other, Duration):
       return self.__class__(self.instant_ns - other.duration_ns)
     if isinstance(other, Timestamp):
       return Duration(self.instant_ns - other.instant_ns)
     return NotImplemented
 
-  def __add__(self, other: object) -> Self:
+  def __add__(self: TimestampType, other: object) -> TimestampType:
     if isinstance(other, Duration):
       return self.__class__(self.instant_ns + other.duration_ns)
     return NotImplemented
@@ -62,12 +64,12 @@ class Timestamp:
                            r'(?P<date>\d{4}-\d{2}-?\d{2}T?\d{2}:\d{2}:\d{2})'
                            r'\.(?P<nanoseconds>\d{9})Z'
                            r'$')
-  _PATTERN: ClassVar[re.Pattern[str]] = re.compile(_REGEX)
+  _PATTERN: ClassVar['re.Pattern[str]'] = re.compile(_REGEX)
   _STRPTIME_FORMAT: ClassVar[str] = '%Y-%m-%dT%H:%M:%S'
   _EPOCH_DATE: ClassVar[datetime] = datetime(1970, 1, 1)
 
   @classmethod
-  def build(cls, s: str) -> Self:
+  def build(cls: Type[TimestampType], s: str) -> TimestampType:
     try:
       return cls(int(s))
     except ValueError:
@@ -82,9 +84,9 @@ class Timestamp:
     instant_ns = seconds * 10**9 + nanoseconds
     return cls(instant_ns)
 
-  MAX: ClassVar[Self]
-  MIN: ClassVar[Self]
-  ZERO: ClassVar[Self]
+  MAX: ClassVar
+  MIN: ClassVar
+  ZERO: ClassVar
 
 
 Timestamp.MAX = Timestamp(Timestamp._NANOSECONDS_MAX)

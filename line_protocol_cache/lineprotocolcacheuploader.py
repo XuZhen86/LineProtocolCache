@@ -4,10 +4,10 @@ import signal
 import sqlite3
 from sys import float_info
 from threading import Event
-from typing import Any, Self
+from typing import Any, Dict, List, TypeVar
 
 from absl import app, flags, logging
-from influxdb_client import InfluxDBClient
+from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from line_protocol_cache.flagutil import value_or_default
@@ -84,16 +84,17 @@ _BATCH_SIZE = flags.DEFINE_integer(
 )
 
 
-def _validate_server_flags(flag: dict[str, Any]) -> bool:
-  try:
-    list(zip(_URLS.value, _BUCKETS.value, _TOKENS.value, _ORGS.value, strict=True))
-    return True
-  except ValueError as e:
+def _validate_server_flags(flag: Dict[str, Any]) -> bool:
+  lengths = [len(_URLS.value), len(_BUCKETS.value), len(_TOKENS.value), len(_ORGS.value)]
+  if len(set(lengths)) != 1:
     raise flags.ValidationError(f'Flags {_URLS.name}, {_BUCKETS.name}, {_TOKENS.name}, and {_ORGS.name} '
-                                'should have the same length.') from e
+                                'should have the same length.')
+  return True
 
 
 flags.register_multi_flags_validator((_URLS, _BUCKETS, _TOKENS, _ORGS), _validate_server_flags)
+
+LineProtocolCacheUploaderType = TypeVar(name='LineProtocolCacheUploaderType', bound='LineProtocolCacheUploader')
 
 
 class LineProtocolCacheUploader:
@@ -103,7 +104,7 @@ class LineProtocolCacheUploader:
   _DELETE_ROW = 'DELETE FROM LineProtocolCache WHERE rowid = ?;'
   _COUNT = 'SELECT COUNT(line_protocol) FROM LineProtocolCache;'
 
-  def __enter__(self) -> Self:
+  def __enter__(self: LineProtocolCacheUploaderType) -> LineProtocolCacheUploaderType:
     os.makedirs(os.path.dirname(value_or_default(_CACHE_PATH)), exist_ok=True)
 
     self._connection = sqlite3.connect(database=value_or_default(_CACHE_PATH),
@@ -114,7 +115,7 @@ class LineProtocolCacheUploader:
 
     self._clients: list[InfluxDBClient] = [
         InfluxDBClient(url=url, token=token, org=org, timeout=value_or_default(_HTTP_TIMEOUT), enable_gzip=True)
-        for url, token, org in zip(_URLS.value, _TOKENS.value, _ORGS.value, strict=True)
+        for url, token, org in zip(_URLS.value, _TOKENS.value, _ORGS.value)
     ]
     self._write_apis = [client.write_api(write_options=SYNCHRONOUS) for client in self._clients]
 
@@ -125,7 +126,7 @@ class LineProtocolCacheUploader:
       client.close()
     self._connection.close()
 
-  def _get_rows(self) -> dict[int, str]:
+  def _get_rows(self) -> Dict[int, str]:
     with self._connection:
       raw_rows = self._connection.execute(self._SELECT_ROWS).fetchmany(value_or_default(_BATCH_SIZE))
 
@@ -139,21 +140,19 @@ class LineProtocolCacheUploader:
         continue
 
       e = ValueError('Invalid row. Check query and cache file.')
-      e.add_note(f'{raw_row=}')
-      e.add_note(f'{self._SELECT_ROWS=}')
       raise e
 
     return rows
 
-  def _delete_rows(self, rowids: list[int]) -> None:
+  def _delete_rows(self, rowids: List[int]) -> None:
     with self._connection:
       self._connection.executemany(self._DELETE_ROW, [(rowid,) for rowid in rowids])
 
-  def _upload_rows(self, rows: list[str]) -> None:
+  def _upload_rows(self, rows: List[str]) -> None:
     if len(rows) == 0:
       return
 
-    for write_api, bucket in zip(self._write_apis, _BUCKETS.value, strict=True):
+    for write_api, bucket in zip(self._write_apis, _BUCKETS.value):
       write_api.write(bucket=bucket, record=rows)
 
   def _get_count(self) -> int:
@@ -164,8 +163,6 @@ class LineProtocolCacheUploader:
       return count
 
     e = ValueError('Invalid row when querying count.')
-    e.add_note(f'{rows=}')
-    e.add_note(f'{self._COUNT=}')
     raise e
 
   def run(self, stop_running: Event = Event()) -> None:
@@ -182,7 +179,7 @@ class LineProtocolCacheUploader:
       self._delete_rows(list(rows.keys()))
 
 
-def main(args: list[str]) -> None:
+def main(args: List[str]) -> None:
   with LineProtocolCacheUploader() as uploader:
     stop_running = Event()
     signal.signal(signal.SIGTERM, lambda signal_number, stack_frame: stop_running.set())

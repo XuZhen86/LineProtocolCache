@@ -8,7 +8,7 @@ from absl import logging
 from absl.flags import IllegalFlagValueError
 from absl.logging.converter import absl_to_standard
 from absl.testing import absltest, flagsaver
-from influxdb_client import InfluxDBClient
+from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import WriteApi
 
 from line_protocol_cache.lineprotocolcacheuploader import (_BATCH_SIZE, _BUCKETS, _CACHE_PATH, _CATCHING_UP_INTERVAL,

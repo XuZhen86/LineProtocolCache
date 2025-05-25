@@ -1,3 +1,5 @@
+from typing import Type
+
 from absl.testing import parameterized
 
 from bucket_migration_helper.duration import Duration
@@ -11,7 +13,7 @@ class TestTimestamp(parameterized.TestCase):
       (MIN - 1, ValueError),
       (MAX + 1, ValueError),
   )
-  def test_invalidValue(self, duration_ns: int, expected_exception: type[Exception]):
+  def test_invalidValue(self, duration_ns: int, expected_exception: Type[Exception]):
     with self.assertRaises(expected_exception):
       Duration(duration_ns)
 

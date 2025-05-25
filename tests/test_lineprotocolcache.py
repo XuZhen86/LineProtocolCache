@@ -5,7 +5,7 @@ import tempfile
 from absl import logging
 from absl.logging.converter import absl_to_standard
 from absl.testing import absltest
-from influxdb_client import Point
+from influxdb_client.client.write.point import Point
 
 from line_protocol_cache.lineprotocolcache import LineProtocolCache, LineProtocolCacheConfig
 

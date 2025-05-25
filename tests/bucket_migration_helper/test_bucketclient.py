@@ -1,10 +1,12 @@
+from typing import List
 from unittest.mock import Mock, patch
 
 from absl import logging
 from absl.logging.converter import absl_to_standard
 from absl.testing import flagsaver, parameterized
-from influxdb_client import InfluxDBClient, QueryApi
 from influxdb_client.client.flux_table import FluxRecord, FluxTable, TableList
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.client.query_api import QueryApi
 from jsonschema import ValidationError
 from tenacity import stop_after_attempt, wait_none
 
@@ -40,7 +42,7 @@ class TestBucketClient(parameterized.TestCase):
     return super().tearDown()
 
   @classmethod
-  def create_table_list_of(cls, values: list[int]) -> TableList:
+  def create_table_list_of(cls, values: List[int]) -> TableList:
     table_list = TableList()
 
     for i, value in enumerate(values):

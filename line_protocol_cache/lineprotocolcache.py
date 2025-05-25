@@ -4,10 +4,10 @@ import sqlite3
 from dataclasses import dataclass
 from queue import Queue
 from threading import Event, Thread
-from typing import Iterable, Self
+from typing import Iterable, List, TypeVar, Union
 
 from absl import logging
-from influxdb_client import Point
+from influxdb_client.client.write.point import Point
 
 
 @dataclass(frozen=True)
@@ -34,12 +34,15 @@ class LineProtocolCacheConfig:
     assert self.sample_interval_s >= 0
 
 
+LineProtocolCacheType = TypeVar(name='LineProtocolCacheType', bound='LineProtocolCache')
+
+
 class LineProtocolCache:
   _ENABLE_WAL = 'PRAGMA journal_mode=WAL;'  # https://www.sqlite.org/wal.html
   _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS LineProtocolCache (line_protocol TEXT NOT NULL);'
   _INSERT_ROW = 'INSERT INTO LineProtocolCache (line_protocol) VALUES (?);'
 
-  _QUEUE: Queue[str] = Queue()
+  _QUEUE: 'Queue[str]' = Queue()
   _IS_QUEUE_OPEN = Event()
 
   def __init__(self, config: LineProtocolCacheConfig = LineProtocolCacheConfig()) -> None:
@@ -47,7 +50,7 @@ class LineProtocolCache:
     self._thread = Thread(target=self._drain_queue, name='LineProtocolCache')
     self._stop_thread = Event()
 
-  def __enter__(self) -> Self:
+  def __enter__(self: LineProtocolCacheType) -> LineProtocolCacheType:
     logging.info('Starting LineProtocolCache thread.')
     self._thread.start()
     self._IS_QUEUE_OPEN.wait()
@@ -60,7 +63,7 @@ class LineProtocolCache:
     self._thread.join()
     logging.info(f'Thread @{self._thread.native_id} has stopped.')
 
-  async def __aenter__(self) -> Self:
+  async def __aenter__(self: LineProtocolCacheType) -> LineProtocolCacheType:
     return self.__enter__()
 
   async def __aexit__(self, exception_type, exception_value, exception_traceback) -> None:
@@ -89,8 +92,8 @@ class LineProtocolCache:
       self._IS_QUEUE_OPEN.clear()
       connection.close()
 
-  def _get_rows(self) -> list[str]:
-    rows: list[str] = []
+  def _get_rows(self) -> List[str]:
+    rows: List[str] = []
 
     while self._QUEUE.qsize() != 0 and len(rows) < self._config.batch_size:
       row = self._QUEUE.get()
@@ -99,7 +102,7 @@ class LineProtocolCache:
 
     return rows
 
-  def _insert_rows(self, connection: sqlite3.Connection, rows: list[str]) -> None:
+  def _insert_rows(self, connection: sqlite3.Connection, rows: List[str]) -> None:
     if len(rows) == 0:
       return
 
@@ -109,7 +112,7 @@ class LineProtocolCache:
       self._QUEUE.task_done()
 
   @classmethod
-  def put(cls, *items: Point | Iterable[Point]) -> None:
+  def put(cls, *items: Union[Point, Iterable[Point]]) -> None:
     if not cls._IS_QUEUE_OPEN.is_set():
       raise ValueError('Line protocol queue is not open. '
                        'Check if there was an Exception in the LineProtocolCache thread.')

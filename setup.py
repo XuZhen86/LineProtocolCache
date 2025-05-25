@@ -6,7 +6,7 @@ setuptools.setup(
     author='XuZhen86',
     url='https://github.com/XuZhen86/LineProtocolCache',
     packages=setuptools.find_packages(),
-    python_requires='>=3.11,<4',
+    python_requires='>=3.8.0,<4',
     install_requires=[
         'absl-py>=2.1.0,<3',
         'aiosqlite>=0.19.0,<1',

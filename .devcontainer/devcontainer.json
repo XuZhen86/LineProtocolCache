@@ -14,7 +14,7 @@
     }
   },
   // https://containers.dev/implementors/json_reference/#image-specific
-  "image": "python:3.12.1",
+  "image": "python:3.8.0",
   // https://containers.dev/implementors/json_reference/#lifecycle-scripts
   "postCreateCommand": [
     "pip3",

@@ -1,8 +1,10 @@
 import math
-from typing import Iterator, Self
+from typing import Iterator, TypeVar
 
 from .duration import Duration
 from .timestamprange import TimestampRange
+
+TimestampRangeIteratorType = TypeVar(name='TimestampRangeIteratorType', bound='TimestampRangeIterator')
 
 
 class TimestampRangeIterator(Iterator[TimestampRange]):
@@ -16,7 +18,7 @@ class TimestampRangeIterator(Iterator[TimestampRange]):
     self._i = 0
     self._n = math.ceil(self.ts_range.duraton() / self.step)
 
-  def __iter__(self) -> Self:
+  def __iter__(self: TimestampRangeIteratorType) -> TimestampRangeIteratorType:
     return self
 
   def __next__(self) -> TimestampRange:

@@ -1,8 +1,8 @@
 import json
-from typing import Self
+from typing import List, TypeVar
 
 from absl import flags, logging
-from influxdb_client import InfluxDBClient
+from influxdb_client.client.influxdb_client import InfluxDBClient
 from jsonschema import Draft202012Validator
 from tenacity import before_sleep_log, retry, stop_after_attempt, wait_fixed
 
@@ -26,6 +26,8 @@ _FLUX_QUERY = flags.DEFINE_multi_string(
     'Use --verbosity=1 to preview the assembled queries.',
 )
 
+BucketClientType = TypeVar(name='BucketClientType', bound='BucketClient')
+
 
 class BucketClient:
 
@@ -35,7 +37,7 @@ class BucketClient:
 
     self._bucket_info = bucket_info
 
-  def __enter__(self) -> Self:
+  def __enter__(self: BucketClientType) -> BucketClientType:
     self._client = InfluxDBClient(url=self._bucket_info.server_url,
                                   token=self._bucket_info.token,
                                   org=self._bucket_info.organization,
@@ -52,7 +54,7 @@ class BucketClient:
       wait=wait_fixed(5),
       stop=stop_after_attempt(5),
       reraise=True)
-  def execute_query(self, ts_range: TimestampRange, query_lines: list[str]) -> list[dict]:
+  def execute_query(self, ts_range: TimestampRange, query_lines: List[str]) -> List[dict]:
     query = ' |> '.join([
         f'from(bucket: "{self._bucket_info.bucket}")',
         str(ts_range),
